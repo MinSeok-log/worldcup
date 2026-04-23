@@ -262,7 +262,7 @@ export const defaultAnimeList: Anime[] = [
   {
     id: "23",
     name: "짱구는 못말려",
-    image: "https://cdn.myanimelist.net/images/anime/1935/127691l.jpg",
+    image: "https://cdn.myanimelist.net/images/anime/10/59897l.jpg",
     color: "from-yellow-400 to-orange-400",
     genre: "코미디 / 일상",
     year: 1992,

@@ -108,19 +108,21 @@ function QuizImage({
   className,
   showAnswer,
   isCorrect,
+  questionIndex,
 }: {
   anime: Anime;
   alt: string;
   className?: string;
   showAnswer?: boolean;
   isCorrect?: boolean;
+  questionIndex: number;
 }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 고유한 이미지 URL을 생성 (anime.id를 포함하여 캐시 문제 방지)
+  // 고유한 이미지 URL을 생성 (questionIndex와 anime.id를 포함하여 캐시 문제 방지)
   const proxiedImageUrl = anime.image
-    ? `/api/image?url=${encodeURIComponent(anime.image)}&id=${anime.id}`
+    ? `/api/image?url=${encodeURIComponent(anime.image)}&id=${anime.id}&q=${questionIndex}`
     : "";
 
   if (!anime.image || hasError) {
@@ -146,7 +148,7 @@ function QuizImage({
         <div className="absolute inset-0 image-loading" />
       )}
       <Image
-        key={`img-${anime.id}-${anime.image}`}
+        key={`img-${questionIndex}-${anime.id}`}
         src={proxiedImageUrl}
         alt={alt}
         fill
@@ -342,7 +344,43 @@ export function WorldCupGame() {
     ]);
   }, [currentAnime, userAnswer, currentHintsUsed]);
 
-  const nextQuestion = useCallback(async () => {
+  const nextQuestion = useCallback(() => {
+    const nextIdx = currentIndex + 1;
+
+    if (nextIdx >= totalQuestions) {
+      const endTime = Date.now();
+      const totalPlayTime = Math.floor((endTime - gameStartTime) / 1000);
+
+      setPlayTime(totalPlayTime);
+
+      // score는 현재 상태에서 가져와야 하므로 setter 내부에서 처리
+      setScore((currentScore) => {
+        const record: ScoreRecord = {
+          playerName,
+          score: currentScore,
+          totalQuestions,
+          round: selectedRound,
+          date: new Date().toLocaleDateString("ko-KR"),
+          playTime: totalPlayTime,
+        };
+
+        // 비동기 저장 처리
+        setIsLoading(true);
+        saveScoreToServer(record).then((records) => {
+          setLeaderboardRound(selectedRound);
+          setLeaderboard(records);
+          setShowRankChange(true);
+          setIsLoading(false);
+          setGameState("result");
+        });
+
+        return currentScore; // score 값은 변경하지 않음
+      });
+
+      return;
+    }
+
+    // 상태 리셋
     setShowAnswer(false);
     setUserAnswer("");
     setIsCorrect(false);
@@ -355,33 +393,9 @@ export function WorldCupGame() {
     });
     setCurrentHintsUsed(0);
 
-    if (currentIndex + 1 >= totalQuestions) {
-      const endTime = Date.now();
-      const totalPlayTime = Math.floor((endTime - gameStartTime) / 1000);
-
-      setPlayTime(totalPlayTime);
-
-      const record: ScoreRecord = {
-        playerName,
-        score,
-        totalQuestions,
-        round: selectedRound,
-        date: new Date().toLocaleDateString("ko-KR"),
-        playTime: totalPlayTime,
-      };
-
-      setIsLoading(true);
-      const records = await saveScoreToServer(record);
-      setLeaderboardRound(selectedRound);
-      setLeaderboard(records);
-      setShowRankChange(true);
-      setIsLoading(false);
-      setGameState("result");
-      return;
-    }
-
-    setCurrentIndex((prev) => prev + 1);
-  }, [currentIndex, totalQuestions, gameStartTime, playerName, score, selectedRound]);
+    // 인덱스 증가
+    setCurrentIndex(nextIdx);
+  }, [currentIndex, totalQuestions, gameStartTime, playerName, selectedRound]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") {
@@ -679,14 +693,24 @@ export function WorldCupGame() {
             </div>
           </div>
 
-          {/* Play again button */}
-          <Button
-            onClick={resetGame}
-            size="lg"
-            className="btn-press mb-6 w-full animate-slide-up stagger-3 rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 px-8 py-5 text-lg font-bold text-white shadow-lg shadow-rose-500/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-rose-500/50"
-          >
-            다시 플레이
-          </Button>
+          {/* Action buttons */}
+          <div className="mb-6 flex animate-slide-up stagger-3 gap-3">
+            <Button
+              onClick={startGame}
+              size="lg"
+              className="btn-press flex-1 rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 px-6 py-5 text-lg font-bold text-white shadow-lg shadow-rose-500/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-rose-500/50"
+            >
+              다시 플레이
+            </Button>
+            <Button
+              onClick={resetGame}
+              size="lg"
+              variant="outline"
+              className="btn-press flex-1 rounded-2xl border-zinc-700 bg-zinc-800/50 px-6 py-5 text-lg font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:border-zinc-600 hover:bg-zinc-700/50"
+            >
+              홈으로
+            </Button>
+          </div>
 
           {/* Leaderboard */}
           <div className="animate-slide-up stagger-4 glass rounded-3xl p-6">
@@ -755,11 +779,12 @@ export function WorldCupGame() {
               >
                 <div className={cn("absolute inset-0 bg-gradient-to-br", currentAnime.color)} />
                 <QuizImage
-                  key={`${currentAnime.id}-${currentAnime.image}`}
+                  key={`quiz-${currentIndex}-${currentAnime.id}`}
                   anime={currentAnime}
                   alt={currentAnime.name}
                   showAnswer={showAnswer}
                   isCorrect={isCorrect}
+                  questionIndex={currentIndex}
                 />
 
                 {/* Answer overlay */}
