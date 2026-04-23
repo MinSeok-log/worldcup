@@ -1,0 +1,26 @@
+[build]
+  command = "bun run build"
+  publish = ".next"
+
+# Next.js 서버리스 함수 설정
+[functions]
+  directory = ".netlify/functions"
+
+# API 이미지 경로 캐시 비활성화
+[[headers]]
+  for = "/api/image"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/api/image/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+# 플러그인 설정 (Next.js용)
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

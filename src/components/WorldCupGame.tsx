@@ -109,6 +109,7 @@ function QuizImage({
   showAnswer,
   isCorrect,
   questionIndex,
+  sessionId,
 }: {
   anime: Anime;
   alt: string;
@@ -116,13 +117,14 @@ function QuizImage({
   showAnswer?: boolean;
   isCorrect?: boolean;
   questionIndex: number;
+  sessionId: number;
 }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 고유한 이미지 URL을 생성 (questionIndex와 anime.id를 포함하여 캐시 문제 방지)
+  // 고유한 이미지 URL을 생성 (sessionId로 캐시 완전 방지)
   const proxiedImageUrl = anime.image
-    ? `/api/image?url=${encodeURIComponent(anime.image)}&id=${anime.id}&q=${questionIndex}`
+    ? `/api/image?url=${encodeURIComponent(anime.image)}&id=${anime.id}&q=${questionIndex}&s=${sessionId}`
     : "";
 
   if (!anime.image || hasError) {
@@ -194,6 +196,7 @@ export function WorldCupGame() {
   const [currentHintsUsed, setCurrentHintsUsed] = useState(0);
   const [gameStartTime, setGameStartTime] = useState(0);
   const [playTime, setPlayTime] = useState(0);
+  const [sessionId, setSessionId] = useState(() => Date.now());
 
   const availableAnimeCount = getAnimeList().length;
   const currentAnime = animeList[currentIndex];
@@ -250,6 +253,7 @@ export function WorldCupGame() {
     setCurrentHintsUsed(0);
     setGameStartTime(Date.now());
     setPlayTime(0);
+    setSessionId(Date.now()); // 새 게임마다 새 세션 ID 생성 (캐시 방지)
     setGameState("playing");
   }, [playerName, selectedRound]);
 
@@ -779,12 +783,13 @@ export function WorldCupGame() {
               >
                 <div className={cn("absolute inset-0 bg-gradient-to-br", currentAnime.color)} />
                 <QuizImage
-                  key={`quiz-${currentIndex}-${currentAnime.id}`}
+                  key={`quiz-${currentIndex}-${currentAnime.id}-${sessionId}`}
                   anime={currentAnime}
                   alt={currentAnime.name}
                   showAnswer={showAnswer}
                   isCorrect={isCorrect}
                   questionIndex={currentIndex}
+                  sessionId={sessionId}
                 />
 
                 {/* Answer overlay */}
