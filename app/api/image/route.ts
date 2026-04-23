@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         referer: "https://myanimelist.net/",
         "accept-language": "en-US,en;q=0.9",
       },
-      next: { revalidate: 60 * 60 * 24 },
+      cache: "no-store", // 서버 캐시 비활성화 - 항상 새로 가져오기
     });
 
     if (!response.ok) {

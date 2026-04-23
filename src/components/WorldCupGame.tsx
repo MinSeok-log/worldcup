@@ -117,7 +117,11 @@ function QuizImage({
 }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const proxiedImageUrl = anime.image ? `/api/image?url=${encodeURIComponent(anime.image)}` : "";
+
+  // 고유한 이미지 URL을 생성 (anime.id를 포함하여 캐시 문제 방지)
+  const proxiedImageUrl = anime.image
+    ? `/api/image?url=${encodeURIComponent(anime.image)}&id=${anime.id}`
+    : "";
 
   if (!anime.image || hasError) {
     return (
@@ -142,6 +146,7 @@ function QuizImage({
         <div className="absolute inset-0 image-loading" />
       )}
       <Image
+        key={`img-${anime.id}-${anime.image}`}
         src={proxiedImageUrl}
         alt={alt}
         fill
